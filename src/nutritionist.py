@@ -9,8 +9,12 @@ if __name__ == '__main__':
     else:
         ingredients_list = []
         for i in range(1, len(sys.argv)):
-            ingrident = Ingredient(sys.argv[i])
-            ingredients_list.append(ingrident)
-        recipe = Recipe(ingredients_list)    
+            ingredient = Ingredient(sys.argv[i].replace(",", ""))
+            ingredients_list.append(ingredient)
+        for ingredient in ingredients_list:
+            print(ingredient.name_)
+        recipe = Recipe(ingredients_list)
+        recipe.get_nutrition_facts()    
+        recipe.get_three_dishes()
 
         
