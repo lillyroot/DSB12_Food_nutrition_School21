@@ -35,7 +35,7 @@ class Recipe:
                 for col in daily_nutr.columns:
                     value = row[col]
                     if not isinstance(value, str) and float(value) > 0.0 and not col.lower().startswith('unnamed'):
-                        print(f"{col.capitalize()} - {value.round()}% of Daily Value")
+                        print(f"{col.capitalize()} - {value.round(2)}% of Daily Value")
             print("\n\n")
 
     
@@ -43,16 +43,15 @@ class Recipe:
         print("III. TOP-3 SIMILAR RECIPES:")
         df = pd.read_csv('data/similar_recipes.csv')
         df_full = pd.read_csv('data/epi_r.csv')
+        df = pd.merge(df, df_full[['rating']], left_index=True, right_index=True, how='inner')
         similar_df = pd.DataFrame()
         for ingredient in self.ingredient_list_:
             found_df = df[df['title'].str.contains(ingredient.name_, na=False, case=False)]
             similar_df = pd.concat([similar_df, found_df], ignore_index=True)
-        similar_df = pd.merge(similar_df, df_full[['rating']], left_index=True, right_index=True, how='inner')
-        print(similar_df)
         for i in range(0,3):
             rand_index = random.randint(0, similar_df.shape[0] - 1)
             row = similar_df.iloc[rand_index]
-            print(f"- {row['title']}, rating: {row['rating']}, URL: {row['url']}")
+            print(f"- {row['title']}, rating: {row['rating']}, URL:\n {row['url']}")
 
 
 #     def set_similar_dishes(ingredient_list):
@@ -68,3 +67,46 @@ class Recipe:
 #     def set_URL(self):
 #         df = pd.read_csv('data/similar_recipes.csv')
 #         return df[self.name]
+
+class Menu:
+    def __init__(self):
+        self.max_boundary = 1.2
+        self.min_boundary = 0.9
+        self.menu_list = []
+
+    def generate_menu(self):
+        df = pd.read_csv('data/similar_recipes.csv')
+        df_full = pd.read_csv('data/epi_r.csv')
+        nutritions = pd.read_csv('data/nutrition_facts.csv')
+
+        ingredient_titles = nutritions['title'].tolist()
+        df_dish_ingredients = df_full[['title'] + [col for col in df_full.columns if col in ingredient_titles]]
+        df_dish_ingredients['title'] = df['title']
+
+        eat_time = ['breakfast', 'lunch', 'dinner']
+
+        for time in eat_time:
+
+            df_time = df_full[df_full[time] == 1.0][['title', 'rating']]
+            df_time[nutritions.columns[2:]] = 0.0
+            df_time['title'] = df['title']
+
+            for index, row in df_time.iterrows(): #проходимся по строкам блюдо/элементы
+                #проходимся по колонкам нужной строки блюдо/ингридиенты
+                dish_ingredients_row = df_dish_ingredients[df_dish_ingredients['title'] == row['title']]
+                for column in dish_ingredients_row.columns[2:]:
+                    if ( dish_ingredients_row[column].iloc[0] == 1.0 ): #если есть ингридиент прибавляем к блюдо/элементы ингридиент/элементы
+                        ing_nutrition = nutritions[nutritions['title'] == column]
+                        for nut_col in nutritions.columns[2:]:
+                            df_time.at[index, nut_col] += ing_nutrition[nut_col].iloc[0]
+        
+            print(f'-----------------------df_{time}------------------------')
+            print(df_time)
+
+
+        # df_lunch = df_full[df_full['lunch'] == 1.0]
+        # print(df_lunch.shape[0])
+
+        
+        # df_dinner = df_full[df_full['dinner'] == 1.0]
+        # print(df_dinner.shape[0])

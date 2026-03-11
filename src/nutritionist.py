@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from recipes import Ingredient, Recipe
+from recipes import Ingredient, Recipe, Menu
 
 import sys
 
@@ -17,4 +17,6 @@ if __name__ == '__main__':
         recipe.get_nutrition_facts()    
         recipe.get_three_dishes()
 
+        menu = Menu()
+        menu.generate_menu()
         
