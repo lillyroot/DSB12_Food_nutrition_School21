@@ -3,24 +3,33 @@ import pandas as pd
 import random
 class Ingredient:
     def __init__(self, name):
-        self.name_ = name
+        ingredients = pd.read_csv('data/nutrition_facts.csv')['title']
+        if ingredients.str.contains(name, na=False, case=False).any():
+            self.name_ = name
+        else:
+            raise ValueError('Unknown ingredient typed')
         self.nutritions = {}
 
 class Recipe:
     def __init__(self, ingredient_list):
         self.ingredient_list_ = ingredient_list
 
-    def get_Forecast(self):
-        class_ = None
-        model = joblib.load('my_model.pkl')
-        new_data = None
-        predictions = model.predict(new_data)
-        if ( predictions == 0 or predictions == 1 ):
-            class_ = 'bad'
-        elif ( predictions == 2 or predictions == 3 ):
-            class_ = 'so-so'
-        else:
-            class_ = 'great'
+    def get_forecast(self):
+        model = joblib.load('data/best_classification_model.pkl')
+
+        feature_names = model.feature_names_in_.tolist()
+        X_new = pd.DataFrame(0, index=[0], columns=feature_names)
+        for ing in self.ingredient_list_:
+            ing_clean = ing.name_.strip().lower()
+            if ing_clean in feature_names:
+                X_new.at[0, ing_clean] = 1
+        pred = model.predict(X_new)[0]
+        if ( pred == 0 ):
+            print('bad')
+        elif ( pred == 1 ):
+            print('so-so')
+        elif ( pred == 2 ):
+            print('great')
 
         
 
@@ -52,21 +61,6 @@ class Recipe:
             rand_index = random.randint(0, similar_df.shape[0] - 1)
             row = similar_df.iloc[rand_index]
             print(f"- {row['title']}, rating: {row['rating']}, URL:\n {row['url']}")
-
-
-#     def set_similar_dishes(ingredient_list):
-        
-
-# class Dish:
-#     def __init__(self, url, ingredient_list, rating):
-#         self.url_ = url
-#         self.ingredient_list_ = ingredient_list
-#         self.rating_ = rating
-#         self.name_ = name
-
-#     def set_URL(self):
-#         df = pd.read_csv('data/similar_recipes.csv')
-#         return df[self.name]
 
 class Menu:
     def __init__(self):
@@ -102,11 +96,3 @@ class Menu:
         
             print(f'-----------------------df_{time}------------------------')
             print(df_time)
-
-
-        # df_lunch = df_full[df_full['lunch'] == 1.0]
-        # print(df_lunch.shape[0])
-
-        
-        # df_dinner = df_full[df_full['dinner'] == 1.0]
-        # print(df_dinner.shape[0])
