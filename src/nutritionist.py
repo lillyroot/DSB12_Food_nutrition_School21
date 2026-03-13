@@ -13,9 +13,9 @@ if __name__ == '__main__':
             ingredients_list.append(ingredient)
         recipe = Recipe(ingredients_list)
         recipe.get_forecast()
-        # recipe.get_nutrition_facts()    
-        # recipe.get_three_dishes()
+        recipe.get_nutrition_facts()    
+        recipe.get_three_dishes()
 
-        # menu = Menu()
-        # menu.generate_menu()
-        
+        menu = Menu()
+        menu.generate_menu()
+        menu.print_menu()
