@@ -6,17 +6,17 @@ import numpy as np
 class Ingredient:
     def __init__(self, name):
         ingredients = pd.read_csv('data/nutrition_facts.csv')['title'].to_list()
-        if name in ingredients or name == 'menu':
+        if name in ingredients:
             self.name_ = name
         else:
             raise ValueError('Unknown ingredient typed')
-        self.nutritions = {}
 
 class Recipe:
     def __init__(self, ingredient_list):
         self.ingredient_list_ = ingredient_list
 
     def get_forecast(self):
+        print("I. OUR FORECAST")
         model = joblib.load('data/best_classification_model.pkl')
         feature_names = model.feature_names_in_.tolist()
         X_new = pd.DataFrame(0, index=[0], columns=feature_names)
@@ -26,7 +26,7 @@ class Recipe:
                 X_new.at[0, ing_clean] = 1
         pred = model.predict(X_new)[0]
         if ( pred == 0 ):
-            print('You might find it tasty, but in our opinion, it is a bad idea to have aish with that list of ingredients')
+            print('You might find it tasty, but in our opinion, it is a bad idea to have a dish with that list of ingredients')
         elif ( pred == 1 ):
             print('Not bad, not great — just a forgettable so-so experience.')
         elif ( pred == 2 ):
@@ -63,7 +63,7 @@ class Recipe:
 class Menu:
     def __init__(self):
         self.max_boundary = 100
-        self.min_boundary = 0
+        self.min_boundary = 50
         self.menu_list = []
 
     def generate_menu(self):
@@ -77,47 +77,36 @@ class Menu:
         # df_dish_ingredients.to_csv('data/dish_ingridient.csv')
         eat_time = ['breakfast', 'lunch', 'dinner']
         df_list = []
-        for time in eat_time:
-            df_time = df_full[df_full[time] == 1.0][['title', 'rating']]
-            df_time[nutritions.columns[1:]] = 0.0
-            df_time['title'] = df['title']
-            df_time = df_time[df_time['rating'] > 4.0]
-            for index, row in df_time.iterrows(): #проходимся по строкам блюдо/элементы
-                #проходимся по колонкам нужной строки блюдо/ингридиенты
-                dish_ingredients_row = df_dish_ingredients[df_dish_ingredients['title'] == row['title']]
-                for column in dish_ingredients_row.columns[2:]:
-                    if ( dish_ingredients_row[column].iloc[0] == 1.0 ): #если есть ингридиент прибавляем к блюдо/элементы ингридиент/элементы
-                        ing_nutrition = nutritions[nutritions['title'] == column]
-                        for nut_col in nutritions.columns[1:]:
-                            df_time.at[index, nut_col] += ing_nutrition[nut_col].iloc[0]
+
+        #Создаётся датафреймы по завтраку, обеду и ужину
+        # for time in eat_time:
+        #     df_time = df_full[df_full[time] == 1.0][['title', 'rating']]
+        #     df_time[nutritions.columns[1:]] = 0.0
+        #     df_time['title'] = df['title']
+        #     df_time = df_time[df_time['rating'] > 4.0]
+        #     for index, row in df_time.iterrows(): #проходимся по строкам блюдо/элементы
+        #         #проходимся по колонкам нужной строки блюдо/ингридиенты
+        #         dish_ingredients_row = df_dish_ingredients[df_dish_ingredients['title'] == row['title']]
+        #         for column in dish_ingredients_row.columns[2:]:
+        #             if ( dish_ingredients_row[column].iloc[0] == 1.0 ): #если есть ингридиент прибавляем к блюдо/элементы ингридиент/элементы
+        #                 ing_nutrition = nutritions[nutritions['title'] == column]
+        #                 for nut_col in nutritions.columns[1:]:
+        #                     df_time.at[index, nut_col] += ing_nutrition[nut_col].iloc[0]
             # print(f'-----------------------df_{time}------------------------')
             # print(df_time)
-            df_list.append(df_time.sample(frac=1))
+            # df_time.to_csv(f'data/{time}.csv')
+            # df_list.append(df_time.sample(frac=1))
         
-        df_list = [df.reset_index(drop=True) for df in df_list]
+        # df_list = [df.reset_index(drop=True) for df in df_list]
+        df_list = [df.reset_index(drop=True) for df in [pd.read_csv('data/breakfast.csv').sample(frac=1), pd.read_csv('data/lunch.csv').sample(frac=1), pd.read_csv('data/dinner.csv').sample(frac=1)]]
         pd.concat([df_list[0], df_list[1], df_list[2]], ignore_index=True).to_csv('data/dish_nutr.csv')
-        print(df_list)
-        # for idx1, row1 in df_list[0].iterrows():
-        #     sum1 = row1.iloc[2:].sum()
-        #     for idx2, row2 in df_list[1].iterrows():
-        #         sum2 = row2.iloc[2:].sum()
-        #         for idx3, row3 in df_list[2].iterrows():
-        #             sum3 = row3.iloc[2:].sum()
-        #             total_sum = sum1 + sum2 + sum3
-        #             flag = True
-        #             print(f"{idx1} {idx2} {idx3}")
-        #             if total_sum < self.min_boundary or total_sum > self.max_boundary:
-        #                 flag = False
-        #                 break
-        #             if (flag):
-        #                 pos_dishes = [row1['title'], row2['title'], row3['title'],]
-        #                 all_combinations.append(pos_dishes)
-
-        # print(all_combinations)
+        # print(df_list)
 
         arrays = []
         titles = []
         for df in df_list:
+            list_ = (df.iloc[:, 4:] > 0.0).sum().sort_values(ascending=False).index.to_list()[0:10]#10 самых популярных нутриента
+            df = df[['title'] + list_]   
             numeric_data = df.iloc[:, 2:].values
             arrays.append(numeric_data)
             titles.append(df['title'].values)
@@ -145,22 +134,26 @@ class Menu:
                         self.menu_list.append(titles[1][i2])
                         self.menu_list.append(titles[2][i3])
                         found = True
+                        # with open('data/menu.txt', 'w', encoding='utf-8') as file:
+                        #     for item in self.menu_list:
+                        #         file.write(item + '\n')
 
     def print_menu(self):
         dish_ing_df = pd.read_csv('data/dish_ingridient.csv')
+        dish_nutr_df = pd.read_csv('data/dish_nutr.csv')
         print('BREAKFAST\n---------------------\n')
         breakfast = self.menu_list[0]
-        print(breakfast)
+        print(f"{breakfast} (rating: {dish_nutr_df[dish_nutr_df['title'] == breakfast].iloc[0]['rating']})\n")
         print_ingredients(breakfast)
         print_dish_nutr(breakfast)
         print('LUNCH\n---------------------\n')
         lunch = self.menu_list[1]
-        print(lunch)
+        print(f"{lunch} (rating: {dish_nutr_df[dish_nutr_df['title'] == lunch].iloc[0]['rating']})\n")
         print_ingredients(lunch)
         print_dish_nutr(lunch)
         print('DINNER\n---------------------\n')
         dinner = self.menu_list[2]
-        print(dinner)
+        print(f"{dinner} (rating: {dish_nutr_df[dish_nutr_df['title'] == dinner].iloc[0]['rating']})\n")
         print_ingredients(dinner)
         print_dish_nutr(dinner)
 
