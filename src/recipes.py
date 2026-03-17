@@ -40,15 +40,19 @@ class Recipe:
             if mask.any():
                 print(ingredient.name_.capitalize())
                 row = daily_nutr[mask].iloc[0]
+                flag = True
                 for col in daily_nutr.columns:
                     value = row[col]
                     if not isinstance(value, str) and float(value) > 0.0 and not col.lower().startswith('unnamed'):
                         print(f"{col.capitalize()} - {value.round(2)}% of Daily Value")
+                        flag = False
+            if flag: 
+                print("\nNo nutrients found...")
             print("\n\n")
 
     def get_three_dishes(self):
         print("III. TOP-3 SIMILAR RECIPES:")
-        df = pd.read_csv('data/similar_recipes.csv')
+        df = pd.read_csv('data/similar_recipes_new.csv')
         df_full = pd.read_csv('data/epi_r.csv')
         df = pd.merge(df, df_full[['rating']], left_index=True, right_index=True, how='inner')
         similar_df = pd.DataFrame()
@@ -67,18 +71,18 @@ class Menu:
         self.menu_list = []
 
     def generate_menu(self):
-        df = pd.read_csv('data/similar_recipes.csv')
+        df = pd.read_csv('data/similar_recipes_new.csv')
         df_full = pd.read_csv('data/epi_r.csv')
         nutritions = pd.read_csv('data/nutrition_facts.csv')
         all_combinations = []
         ingredient_titles = nutritions['title'].tolist()
         df_dish_ingredients = df_full[['title'] + [col for col in df_full.columns if col in ingredient_titles]]
         df_dish_ingredients['title'] = df['title']
-        # df_dish_ingredients.to_csv('data/dish_ingridient.csv')
+        # df_dish_ingredients.to_csv('data/dish_ingridient_new.csv')
         eat_time = ['breakfast', 'lunch', 'dinner']
         df_list = []
 
-        #Создаётся датафреймы по завтраку, обеду и ужину
+        # Создаётся датафреймы по завтраку, обеду и ужину
         # for time in eat_time:
         #     df_time = df_full[df_full[time] == 1.0][['title', 'rating']]
         #     df_time[nutritions.columns[1:]] = 0.0
@@ -92,10 +96,10 @@ class Menu:
         #                 ing_nutrition = nutritions[nutritions['title'] == column]
         #                 for nut_col in nutritions.columns[1:]:
         #                     df_time.at[index, nut_col] += ing_nutrition[nut_col].iloc[0]
-            # print(f'-----------------------df_{time}------------------------')
-            # print(df_time)
-            # df_time.to_csv(f'data/{time}.csv')
-            # df_list.append(df_time.sample(frac=1))
+        #     print(f'-----------------------df_{time}------------------------')
+        #     print(df_time)
+        #     df_time.to_csv(f'data/{time}.csv')
+        #     df_list.append(df_time.sample(frac=1))
         
         # df_list = [df.reset_index(drop=True) for df in df_list]
         df_list = [df.reset_index(drop=True) for df in [pd.read_csv('data/breakfast.csv').sample(frac=1), pd.read_csv('data/lunch.csv').sample(frac=1), pd.read_csv('data/dinner.csv').sample(frac=1)]]
@@ -134,9 +138,6 @@ class Menu:
                         self.menu_list.append(titles[1][i2])
                         self.menu_list.append(titles[2][i3])
                         found = True
-                        # with open('data/menu.txt', 'w', encoding='utf-8') as file:
-                        #     for item in self.menu_list:
-                        #         file.write(item + '\n')
 
     def print_menu(self):
         dish_ing_df = pd.read_csv('data/dish_ingridient.csv')
